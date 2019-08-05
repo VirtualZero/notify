@@ -116,3 +116,61 @@ def add_app():
         'api_key': api_keys['api_key'],
         'refresh_api_key': api_keys['refresh_api_key']
     }
+
+
+def decode_api_key():
+    try:
+        api_key = jwt.decode(
+            request.headers['X-API-KEY'],
+            environ['JWT_SECRET_KEY']
+        )
+
+    except jwt.exceptions.DecodeError:
+        abort(
+            401,
+            'Error: Invalid API key.'
+        )
+
+    except jwt.exceptions.ExpiredSignatureError:
+        abort(
+            401,
+            'Error: API key is expired, use your app\'s refresh API key to get a new API Key.'
+        )
+
+    except:
+        abort(
+            500,
+            'Something went wrong.'
+        )
+
+    return api_key
+
+def delete_app():
+    api_key = decode_api_key()
+
+    app_to_delete = VerifiedApp.query.filter_by(
+        appid=api_key['appid']
+    ).first()
+
+    if not app_to_delete:
+        abort(
+            400,
+            'App does not exist in database.'
+        )
+
+    if app_to_delete.app_name != api_key['app_name'] or \
+        app_to_delete.vzid != api_key['vzid'] or \
+        app_to_delete.api_key != request.headers['X-API-KEY']:
+        
+        abort(
+            401,
+            'Invalid API key.'
+        )
+
+    db.session.delete(app_to_delete)
+    db.session.commit()
+    
+    return {
+        'status': 'success',
+        'message': f'{api_key["app_name"]} ({api_key["appid"]}) deleted.'
+    }
