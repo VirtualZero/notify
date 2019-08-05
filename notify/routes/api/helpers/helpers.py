@@ -1,10 +1,12 @@
 from functools import wraps
-from flask import request, abort
-from notify import app, db
+from flask import request, abort, copy_current_request_context
+from notify import app, db, mail
 import requests
-import jwt, random, string, datetime
+import jwt, random, string, datetime, re
 from os import environ
 from notify.models.verified_app import VerifiedApp
+from flask_mail import Message
+from threading import Thread
 
 
 def validate_user_token():
@@ -145,6 +147,7 @@ def decode_api_key():
 
     return api_key
 
+
 def delete_app():
     api_key = decode_api_key()
 
@@ -174,3 +177,74 @@ def delete_app():
         'status': 'success',
         'message': f'{api_key["app_name"]} ({api_key["appid"]}) deleted.'
     }
+
+
+def valid_email_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        email_list = request.get_json()['recipients']
+
+        for i in email_list:
+            if not re.search(
+                '.+@.+\..+',
+                i
+            ):
+                abort(
+                    400,
+                    'Error: At least one (1) invalid email address.'
+                )
+            
+        return f(*args, **kwargs)
+
+    return decorated
+
+
+def api_key_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        decoded_api_key = decode_api_key()
+
+        app_ = VerifiedApp.query.filter_by(
+            appid=decoded_api_key['appid']
+        ).first()
+
+        if not app_:
+            abort(
+                400,
+                'Error: App not in database.'
+            )
+
+        return f(*args, **kwargs)
+
+    return decorated
+
+
+def send_mail():
+    data = request.get_json()
+
+    @copy_current_request_context
+    def send_message(new_message):
+        mail.send(new_message)
+
+    new_message = Message(
+        data["subject"],
+        sender=(
+            'VirtualZero',
+            'no-reply@virtualzero.tech'
+        ),
+        recipients=data["recipients"]
+    )
+
+    new_message.body = data["message"]
+    
+    sender = Thread(
+        name='new_mail_sender',
+        target=send_message,
+        args=(new_message,)
+    )
+
+    sender.start()
+
+    return {
+        'status': 'success'
+    }, 200

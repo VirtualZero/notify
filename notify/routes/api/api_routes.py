@@ -1,8 +1,13 @@
 from flask import request, abort, Blueprint
-from notify import app, db
+from notify import app
 from flask_restplus import Api, Resource, fields
-import requests
-from notify.routes.api.helpers.helpers import add_app, delete_app
+from notify.routes.api.helpers.helpers import (
+    add_app, delete_app,
+    valid_email_required,
+    api_key_required,
+    send_mail
+)
+
 
 # Blueprint
 
@@ -59,6 +64,15 @@ new_app = api.model(
     }
 )
 
+api_mail = ns_mail.model(
+    'Mail',
+    {
+        'recipients': fields.List(fields.String, required=True),
+        'subject': fields.String('subject', required=True),
+        'message': fields.String('message', required=True)
+    }
+)
+
 
 # Routes
 
@@ -80,7 +94,7 @@ class NewApp(Resource):
         }
     )
     def post(self):
-        return add_app()
+        return add_app(), 200
 
 
 @ns_app.route('/delete-app')
@@ -100,4 +114,27 @@ class DeleteApp(Resource):
         }
     )
     def delete(self):
-        return delete_app()
+        return delete_app(), 200
+
+
+@ns_mail.route('/send-mail')
+class SendMail(Resource):
+    @ns_mail.expect(api_mail)
+    @ns_mail.header(
+        'X-API-KEY',
+        'Must include the app API key in the header.'
+    )
+    @ns_mail.doc(
+        description='coming soon',
+        security='apikey',
+        responses={
+            200: 'Success',
+            400: 'Bad Request',
+            401: 'Not Authorized',
+            500: 'Something went wrong.'
+        }
+    )
+    @api_key_required
+    @valid_email_required
+    def post(self):
+        return send_mail()
