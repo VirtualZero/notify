@@ -2,7 +2,7 @@ from functools import wraps
 from flask import request, abort
 from notify import app, db
 import requests
-import jwt, random, string
+import jwt, random, string, datetime
 from os import environ
 from notify.models.verified_app import VerifiedApp
 
@@ -43,6 +43,37 @@ def commit_new_app(verified_app):
     return verified_app
 
 
+def make_api_keys(vzid, app_name, appid):
+    api_key = jwt.encode(
+        {
+            'vzid': vzid,
+            'app_name': app_name,
+            'appid': appid,
+            'exp': datetime.datetime.utcnow() + datetime.timedelta(days=365)
+        },
+        environ['JWT_SECRET_KEY']
+    ).decode(
+        'utf-8'
+    )
+
+    refresh_api_key = jwt.encode(
+        {
+            'vzid': vzid,
+            'app_name': app_name,
+            'appid': appid,
+            'exp': datetime.datetime.utcnow() + datetime.timedelta(days=1500)
+        },
+        environ['JWT_REFRESH_SECRET_KEY']
+    ).decode(
+        'utf-8'
+    )
+
+    return {
+        'api_key': api_key,
+        'refresh_api_key': refresh_api_key
+    }
+
+
 def add_app():
     payload = validate_user_token()
     app_name = request.get_json()['app_name']
@@ -65,17 +96,23 @@ def add_app():
         if not VerifiedApp.query.filter_by(
             appid=appid
         ).first():
-            unique = True            
+            unique = True      
+
+    api_keys = make_api_keys(payload['vzid'], app_name, appid)      
 
     verified_app = VerifiedApp(
         payload['vzid'],
         appid,
-        app_name
+        app_name,
+        api_keys['api_key'],
+        api_keys['refresh_api_key']
     )
 
     commit_new_app(verified_app)
     
     return {
         'status': 'success',
-        'appid': appid
+        'appid': appid,
+        'api_key': api_keys['api_key'],
+        'refresh_api_key': api_keys['refresh_api_key']
     }

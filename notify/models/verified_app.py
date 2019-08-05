@@ -20,12 +20,24 @@ class VerifiedApp(db.Model):
         db.String(500)
     )
 
+    api_key = db.Column(
+        db.String(1000)
+    )
+
+    refresh_api_key = db.Column(
+        db.String(1000)
+    )
+
     def __init__(
         self,
         vzid,
         appid,
-        app_name
+        app_name,
+        api_key,
+        refresh_api_key
     ):
         self.vzid = vzid
         self.appid = appid
         self.app_name = app_name
+        self.api_key = api_key,
+        self.refresh_api_key = refresh_api_key
