@@ -3,6 +3,7 @@ from os import environ
 from flask_mail import Mail
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
+from twilio.rest import Client
 
 app = Flask(__name__)
 
@@ -27,6 +28,16 @@ app.config.update(dict(
 )
 
 mail = Mail(app)
+
+
+# Twilio
+account_sid = environ['TWILIO_ACCOUNT_SID']
+auth_token = environ['TWILIO_AUTH_TOKEN']
+
+twilio_client = Client(
+    account_sid,
+    auth_token
+)
 
 
 # Models

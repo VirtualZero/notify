@@ -5,7 +5,8 @@ from notify.routes.api.helpers.helpers import (
     add_app, delete_app,
     valid_email_required,
     api_key_required,
-    send_mail
+    send_mail,
+    send_sms
 )
 
 
@@ -69,6 +70,13 @@ api_mail = ns_mail.model(
     {
         'recipients': fields.List(fields.String, required=True),
         'subject': fields.String('subject', required=True),
+        'message': fields.String('message', required=True)
+    }
+)
+
+api_sms = ns_sms.model(
+    'Mail',
+    {
         'message': fields.String('message', required=True)
     }
 )
@@ -137,4 +145,26 @@ class SendMail(Resource):
     @api_key_required
     @valid_email_required
     def post(self):
-        return send_mail()
+        return send_mail(), 200
+
+
+@ns_sms.route('/send-sms')
+class SendSMS(Resource):
+    @ns_sms.expect(api_sms)
+    @ns_sms.header(
+        'X-API-KEY',
+        'Must include the app API key in the header.'
+    )
+    @ns_sms.doc(
+        description='coming soon',
+        security='apikey',
+        responses={
+            200: 'Success',
+            400: 'Bad Request',
+            401: 'Not Authorized',
+            500: 'Something went wrong.'
+        }
+    )
+    @api_key_required
+    def post(self):
+        return send_sms()

@@ -1,6 +1,6 @@
 from functools import wraps
 from flask import request, abort, copy_current_request_context
-from notify import app, db, mail
+from notify import app, db, mail, twilio_client
 import requests
 import jwt, random, string, datetime, re
 from os import environ
@@ -121,6 +121,12 @@ def add_app():
 
 
 def decode_api_key():
+    if not request.headers.get('X-API-KEY'):
+        abort(
+            401,
+            'Must include the API key.'
+        )
+
     try:
         api_key = jwt.decode(
             request.headers['X-API-KEY'],
@@ -248,3 +254,30 @@ def send_mail():
     return {
         'status': 'success'
     }, 200
+
+
+def send_sms():
+    sms = request.get_json()['message']
+
+    if not sms:
+        abort(
+            400,
+            'Must include a message to send.'
+        )
+
+    try:
+        twilio_client.messages.create(
+            to=environ['TWILIO_SEND_TO'],
+            from_=environ['TWILIO_SEND_FROM'],
+            body=sms
+        )
+
+    except:
+        abort(
+            500,
+            'Something went wrong.'
+        )
+
+    return {
+        'status': 'success'
+    }
