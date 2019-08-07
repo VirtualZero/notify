@@ -75,8 +75,9 @@ api_mail = ns_mail.model(
 )
 
 api_sms = ns_sms.model(
-    'Mail',
-    {
+    'SMS',
+    {   
+        'recipient': fields.String('recipient', required=True),
         'message': fields.String('message', required=True)
     }
 )
@@ -167,4 +168,4 @@ class SendSMS(Resource):
     )
     @api_key_required
     def post(self):
-        return send_sms()
+        return send_sms(), 200

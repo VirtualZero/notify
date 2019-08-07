@@ -257,7 +257,20 @@ def send_mail():
 
 
 def send_sms():
+    recipient = request.get_json()['recipient']
     sms = request.get_json()['message']
+
+    if not re.search('^\+\d{11}$', recipient):
+        abort(
+            400,
+            'Not a valid, US phone number. ie +18144482479'
+        )
+
+    if not recipient:
+        abort(
+            400,
+            'Must include a recipient.'
+        )
 
     if not sms:
         abort(
@@ -267,7 +280,7 @@ def send_sms():
 
     try:
         twilio_client.messages.create(
-            to=environ['TWILIO_SEND_TO'],
+            to=recipient,
             from_=environ['TWILIO_SEND_FROM'],
             body=sms
         )
