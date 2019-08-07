@@ -102,7 +102,7 @@ class NewApp(Resource):
             500: 'Something went wrong.'
         }
     )
-    def put(self):
+    def post(self):
         return add_app(), 200
 
 
