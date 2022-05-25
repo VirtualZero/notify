@@ -22,7 +22,7 @@ Mako==1.1.0
 MarkupSafe==1.1.1
 pycodestyle==2.5.0
 pycparser==2.19
-PyJWT==1.7.1
+PyJWT==2.4.0
 PyMySQL==0.9.3
 pyrsistent==0.15.4
 PySocks==1.7.0
